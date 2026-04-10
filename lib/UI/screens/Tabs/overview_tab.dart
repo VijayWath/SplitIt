@@ -8,6 +8,19 @@ class OverviewTab extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final user = ref.watch(authNotifierProvider).value;
-    return Container(child: Center(child: Text("${user?.name ?? ''}")));
+    return Column(
+      children: [
+        Container(child: Center(child: Text("USser Data for ${user?.name}"))),
+        Container(
+          height: MediaQuery.of(context).size.height * 0.5,
+          child: Center(
+            child: Image.network(
+              "https://upload.wikimedia.org/wikipedia/commons/0/0e/Prime_Minister_of_India_Narendra_Modi.jpg",
+            ),
+          ),
+        ),
+        Container(child: Center(child: Text(user.toString()))),
+      ],
+    );
   }
 }
