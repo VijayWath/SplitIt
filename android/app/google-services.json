@@ -1,0 +1,54 @@
+{
+  "project_info": {
+    "project_number": "901407158387",
+    "project_id": "splitit-30119211",
+    "storage_bucket": "splitit-30119211.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:901407158387:android:5d9cbb18e9ba6dfa83fa06",
+        "android_client_info": {
+          "package_name": "com.splitit.app"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "901407158387-aub9i03en6i7491euapfbsm0r4tkmisk.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.splitit.app",
+            "certificate_hash": "b4d62eb6b9f4922ac688813904e6312247b56503"
+          }
+        },
+        {
+          "client_id": "901407158387-3sbfu5q4776ujm61fj1s1bbl85n99m4j.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAv4iqfz-yNXWwFwioyVUOzsVlICfvICXs"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "901407158387-3sbfu5q4776ujm61fj1s1bbl85n99m4j.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "901407158387-1g3lpdbsbcj7fqqljlpdh7cu5fgm3ak4.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.splitit.app"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
