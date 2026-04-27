@@ -15,7 +15,7 @@ extension SplitTypeExtension on SplitType {
   static SplitType fromMap(String? value) {
     return SplitType.values.firstWhere(
       (e) => e.name == value,
-      orElse: () => SplitType.equal, // safe fallback
+      orElse: () => SplitType.equal,
     );
   }
 }
@@ -23,7 +23,7 @@ extension SplitTypeExtension on SplitType {
 /// ---------------- MODEL ----------------
 
 class SplitDetail {
-  final String id;
+  final String? id; // ✅ nullable
   final String expense_id;
   final String user_id;
   final double share;
@@ -35,7 +35,7 @@ class SplitDetail {
   final UserModel? user;
 
   SplitDetail({
-    required this.id,
+    this.id, // ✅ not required
     required this.expense_id,
     required this.user_id,
     required this.share,
@@ -73,7 +73,7 @@ class SplitDetail {
 
   Map<String, dynamic> toMap() {
     return {
-      'id': id,
+      if (id != null) 'id': id, // ✅ critical (same as ExpenseModel)
       'expense_id': expense_id,
       'user_id': user_id,
       'share': share,
@@ -86,21 +86,15 @@ class SplitDetail {
 
   factory SplitDetail.fromMap(Map<String, dynamic> map) {
     return SplitDetail(
-      id: map['id'] as String,
+      id: map['id'] as String?, // ✅ nullable parse
       expense_id: map['expense_id'] as String,
       user_id: map['user_id'] as String,
-
-      // 🔥 safe numeric parsing
       share: (map['share'] as num).toDouble(),
       value: (map['value'] as num).toDouble(),
-
-      // 🔥 fixed
       split_type: SplitTypeExtension.fromMap(map['split_type'] as String?),
-
       expense: map['expense'] != null
           ? ExpenseModel.fromMap(map['expense'] as Map<String, dynamic>)
           : null,
-
       user: map['user'] != null
           ? UserModel.fromMap(map['user'] as Map<String, dynamic>)
           : null,

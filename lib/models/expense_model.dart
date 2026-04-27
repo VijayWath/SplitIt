@@ -22,7 +22,7 @@ extension ExpenseTypeExtension on ExpenseType {
   }
 }
 
-enum PersonalExpenseType { food, transportation, entertainment, other }
+enum PersonalExpenseType { Food, Transportation, Entertainment, Other }
 
 extension PersonalExpenseTypeExtension on PersonalExpenseType {
   String toMap() => name;
@@ -32,7 +32,7 @@ extension PersonalExpenseTypeExtension on PersonalExpenseType {
 
     return PersonalExpenseType.values.firstWhere(
       (e) => e.name == value,
-      orElse: () => PersonalExpenseType.other,
+      orElse: () => PersonalExpenseType.Other,
     );
   }
 }
@@ -40,7 +40,7 @@ extension PersonalExpenseTypeExtension on PersonalExpenseType {
 /// ---------------- MODEL ----------------
 
 class ExpenseModel {
-  final String id;
+  final String? id; // ✅ nullable
   final String? group_id;
   final String created_by;
   final String paid_by;
@@ -59,7 +59,7 @@ class ExpenseModel {
   final GroupModel? group;
 
   ExpenseModel({
-    required this.id,
+    this.id, // ✅ not required
     this.group_id,
     required this.created_by,
     required this.paid_by,
@@ -119,7 +119,7 @@ class ExpenseModel {
 
   Map<String, dynamic> toMap() {
     return {
-      'id': id,
+      if (id != null) 'id': id, // ✅ critical for Supabase
       'group_id': group_id,
       'created_by': created_by,
       'paid_by': paid_by,
@@ -131,15 +131,12 @@ class ExpenseModel {
       'created_at': created_at.millisecondsSinceEpoch,
       'updated_at': updated_at.millisecondsSinceEpoch,
       'splits': splits.map((x) => x.toMap()).toList(),
-      'created_by_user': created_by_user?.toMap(),
-      'paid_by_user': paid_by_user?.toMap(),
-      'group': group?.toMap(),
     };
   }
 
   factory ExpenseModel.fromMap(Map<String, dynamic> map) {
     return ExpenseModel(
-      id: map['id'] as String,
+      id: map['id'] as String?, // ✅ nullable parse
       group_id: map['group_id'] as String?,
       created_by: map['created_by'] as String,
       paid_by: map['paid_by'] as String,
@@ -193,7 +190,7 @@ class ExpenseModel {
   bool operator ==(covariant ExpenseModel other) {
     if (identical(this, other)) return true;
 
-    final listEquals = DeepCollectionEquality().equals;
+    final listEquals = const DeepCollectionEquality().equals;
 
     return other.id == id &&
         other.group_id == group_id &&

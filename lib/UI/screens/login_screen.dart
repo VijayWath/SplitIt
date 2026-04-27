@@ -1,4 +1,4 @@
-import 'package:app/UI/screens/widgets/loading_circle.dart';
+import 'package:app/UI/widgets/loading_circle.dart';
 import 'package:app/providers/auth_notifier.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
