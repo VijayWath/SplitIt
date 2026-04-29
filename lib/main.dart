@@ -31,7 +31,6 @@ class MyApp extends ConsumerWidget {
     return MaterialApp.router(
       debugShowCheckedModeBanner: false,
       title: 'SplitIT',
-
       themeMode: ThemeMode.system,
       darkTheme: ThemeData(colorScheme: darkColorScheme, useMaterial3: true),
       theme: ThemeData(

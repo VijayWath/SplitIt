@@ -22,7 +22,7 @@ extension ExpenseTypeExtension on ExpenseType {
   }
 }
 
-enum PersonalExpenseType { Food, Transportation, Entertainment, Other }
+enum PersonalExpenseType { food, transportation, entertainment, other }
 
 extension PersonalExpenseTypeExtension on PersonalExpenseType {
   String toMap() => name;
@@ -32,7 +32,7 @@ extension PersonalExpenseTypeExtension on PersonalExpenseType {
 
     return PersonalExpenseType.values.firstWhere(
       (e) => e.name == value,
-      orElse: () => PersonalExpenseType.Other,
+      orElse: () => PersonalExpenseType.other,
     );
   }
 }
@@ -40,7 +40,7 @@ extension PersonalExpenseTypeExtension on PersonalExpenseType {
 /// ---------------- MODEL ----------------
 
 class ExpenseModel {
-  final String? id; // ✅ nullable
+  final String? id;
   final String? group_id;
   final String created_by;
   final String paid_by;
@@ -49,17 +49,21 @@ class ExpenseModel {
   final double amount;
   final String? description;
   final PersonalExpenseType? personal_expense_type;
-  final DateTime created_at;
-  final DateTime updated_at;
-  final List<SplitDetail> splits;
 
-  /// optional populated relations
+  /// ✅ nullable (DB handles these)
+  final DateTime? created_at;
+  final DateTime? updated_at;
+
+  /// ✅ nullable (don’t force empty list)
+  final List<SplitDetail>? splits;
+
+  /// optional relations
   final UserModel? created_by_user;
   final UserModel? paid_by_user;
   final GroupModel? group;
 
   ExpenseModel({
-    this.id, // ✅ not required
+    this.id,
     this.group_id,
     required this.created_by,
     required this.paid_by,
@@ -68,9 +72,9 @@ class ExpenseModel {
     required this.amount,
     this.description,
     this.personal_expense_type,
-    required this.created_at,
-    required this.updated_at,
-    required this.splits,
+    this.created_at,
+    this.updated_at,
+    this.splits,
     this.created_by_user,
     this.paid_by_user,
     this.group,
@@ -119,7 +123,7 @@ class ExpenseModel {
 
   Map<String, dynamic> toMap() {
     return {
-      if (id != null) 'id': id, // ✅ critical for Supabase
+      if (id != null) 'id': id,
       'group_id': group_id,
       'created_by': created_by,
       'paid_by': paid_by,
@@ -128,15 +132,15 @@ class ExpenseModel {
       'amount': amount,
       'description': description,
       'personal_expense_type': personal_expense_type?.toMap(),
-      'created_at': created_at.millisecondsSinceEpoch,
-      'updated_at': updated_at.millisecondsSinceEpoch,
-      'splits': splits.map((x) => x.toMap()).toList(),
+
+      /// ❌ DO NOT send timestamps → DB handles
+      /// ❌ DO NOT send splits → handled separately in DB
     };
   }
 
   factory ExpenseModel.fromMap(Map<String, dynamic> map) {
     return ExpenseModel(
-      id: map['id'] as String?, // ✅ nullable parse
+      id: map['id'] as String?,
       group_id: map['group_id'] as String?,
       created_by: map['created_by'] as String,
       paid_by: map['paid_by'] as String,
@@ -146,29 +150,35 @@ class ExpenseModel {
       ),
       amount: (map['amount'] as num).toDouble(),
       description: map['description'] as String?,
-      personal_expense_type: map['personal_expense_type'] != null
-          ? PersonalExpenseTypeExtension.fromMap(
-              map['personal_expense_type'] as String?,
-            )
+      personal_expense_type: PersonalExpenseTypeExtension.fromMap(
+        map['personal_expense_type'] as String?,
+      ),
+
+      /// ✅ Supabase returns ISO string
+      created_at: map['created_at'] != null
+          ? DateTime.parse(map['created_at'])
           : null,
-      created_at: DateTime.fromMillisecondsSinceEpoch(map['created_at'] as int),
-      updated_at: DateTime.fromMillisecondsSinceEpoch(map['updated_at'] as int),
+
+      updated_at: map['updated_at'] != null
+          ? DateTime.parse(map['updated_at'])
+          : null,
+
+      /// ⚠️ usually fetched via JOIN, not stored in expenses
       splits: map['splits'] != null
           ? List<SplitDetail>.from(
-              (map['splits'] as List).map(
-                (x) => SplitDetail.fromMap(x as Map<String, dynamic>),
-              ),
+              (map['splits'] as List).map((x) => SplitDetail.fromMap(x)),
             )
-          : [],
+          : null,
+
       created_by_user: map['created_by_user'] != null
-          ? UserModel.fromMap(map['created_by_user'] as Map<String, dynamic>)
+          ? UserModel.fromMap(map['created_by_user'])
           : null,
+
       paid_by_user: map['paid_by_user'] != null
-          ? UserModel.fromMap(map['paid_by_user'] as Map<String, dynamic>)
+          ? UserModel.fromMap(map['paid_by_user'])
           : null,
-      group: map['group'] != null
-          ? GroupModel.fromMap(map['group'] as Map<String, dynamic>)
-          : null,
+
+      group: map['group'] != null ? GroupModel.fromMap(map['group']) : null,
     );
   }
 
@@ -181,7 +191,7 @@ class ExpenseModel {
 
   @override
   String toString() {
-    return 'ExpenseModel(id: $id, group_id: $group_id, created_by: $created_by, paid_by: $paid_by, expense_name: $expense_name, expense_type: $expense_type, amount: $amount)';
+    return 'ExpenseModel(id: $id, amount: $amount, name: $expense_name)';
   }
 
   /// ---------------- EQUALITY ----------------

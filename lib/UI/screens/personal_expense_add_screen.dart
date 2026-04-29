@@ -1,10 +1,11 @@
+import 'package:app/Repository/expense_repository.dart';
+import 'package:app/UI/widgets/loading_circle.dart';
 import 'package:app/models/expense_model.dart';
 import 'package:app/providers/auth_notifier.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 final addExpenseFormKey = GlobalKey<FormState>();
-//  food, transportation, entertainment, other
 
 enum PersonalExpenseTypeEntry {
   food('Food', Icons.food_bank),
@@ -22,163 +23,243 @@ extension PersonalExpenseTypeEntryMapper on PersonalExpenseTypeEntry {
   PersonalExpenseType toPersonalExpenseType() {
     switch (this) {
       case PersonalExpenseTypeEntry.food:
-        return PersonalExpenseType.Food;
+        return PersonalExpenseType.food;
       case PersonalExpenseTypeEntry.transportation:
-        return PersonalExpenseType.Transportation;
+        return PersonalExpenseType.transportation;
       case PersonalExpenseTypeEntry.entertainment:
-        return PersonalExpenseType.Entertainment;
+        return PersonalExpenseType.entertainment;
       case PersonalExpenseTypeEntry.other:
-        return PersonalExpenseType.Other;
+        return PersonalExpenseType.other;
     }
   }
 }
 
-extension PersonalExpenseTypeMapper on PersonalExpenseType {
-  PersonalExpenseTypeEntry toEntry() {
-    switch (this) {
-      case PersonalExpenseType.Food:
-        return PersonalExpenseTypeEntry.food;
-      case PersonalExpenseType.Transportation:
-        return PersonalExpenseTypeEntry.transportation;
-      case PersonalExpenseType.Entertainment:
-        return PersonalExpenseTypeEntry.entertainment;
-      case PersonalExpenseType.Other:
-        return PersonalExpenseTypeEntry.other;
-    }
-  }
-}
+/// ---------------- SCREEN ----------------
 
-class PersonalExpenseAddScreen extends ConsumerWidget {
+class PersonalExpenseAddScreen extends ConsumerStatefulWidget {
   const PersonalExpenseAddScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<PersonalExpenseAddScreen> createState() =>
+      _PersonalExpenseAddScreenState();
+}
+
+class _PersonalExpenseAddScreenState
+    extends ConsumerState<PersonalExpenseAddScreen> {
+  String _label = '';
+  String _description = '';
+  double _amount = 0.0;
+  PersonalExpenseTypeEntry _type = PersonalExpenseTypeEntry.food;
+  bool isLoading = false;
+
+  Future<void> _saveExpense() async {
+    final user = ref.read(authNotifierProvider).value;
+
+    if (!addExpenseFormKey.currentState!.validate() || user == null) return;
+
+    addExpenseFormKey.currentState!.save();
+
+    ExpenseModel newExpense = ExpenseModel(
+      amount: _amount,
+      created_by: user.id,
+      paid_by: user.id,
+      expense_name: _label,
+      description: _description,
+      expense_type: ExpenseType.personal,
+      personal_expense_type: _type.toPersonalExpenseType(),
+    );
+    try {
+      setState(() {
+        isLoading = true;
+      });
+      newExpense = await ExpenseRepository().addExpense(newExpense);
+      setState(() {
+        isLoading = false;
+      });
+      Navigator.of(context).pop();
+    } catch (e) {
+      setState(() {
+        isLoading = false;
+      });
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text("Failed to add expense: $e")));
+      return;
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final currentUser = ref.watch(authNotifierProvider);
-    final user = currentUser.value;
-    String lable = '';
-    String description = '';
-    double amount = 0.0;
-    PersonalExpenseTypeEntry personalExpenseType =
-        PersonalExpenseTypeEntry.food;
-    late ExpenseModel? newExpense;
+
     return Scaffold(
       appBar: AppBar(
-        title: const Text("Add Expense"),
         leading: IconButton(
           icon: const Icon(Icons.close),
           onPressed: () => Navigator.pop(context),
         ),
+        actions: [
+          if (isLoading) Center(child: LoadingCircle()),
+          if (!isLoading)
+            TextButton.icon(
+              onPressed: _saveExpense,
+              icon: const Icon(Icons.check),
+              label: const Text("Add"),
+            ),
+        ],
       ),
-      body: SingleChildScrollView(
-        child: Form(
-          key: addExpenseFormKey,
-          child: Column(
-            children: [
-              TextFormField(
-                decoration: const InputDecoration(labelText: "Lable"),
-                keyboardType: TextInputType.text,
+
+      body: SafeArea(
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final isWide = constraints.maxWidth >= 600;
+
+            return SingleChildScrollView(
+              padding: const EdgeInsets.all(16),
+              child: Form(
+                key: addExpenseFormKey,
+                child: isWide
+                    ? Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Expanded(flex: 1, child: _buildMainFields(theme)),
+                          const SizedBox(width: 20),
+                          Expanded(flex: 1, child: _buildDescriptionField()),
+                        ],
+                      )
+                    : Column(
+                        children: [
+                          _buildMainFields(theme),
+                          const SizedBox(height: 20),
+                          _buildDescriptionField(),
+                        ],
+                      ),
+              ),
+            );
+          },
+        ),
+      ),
+    );
+  }
+
+  /// ---------------- MAIN FIELDS ----------------
+
+  Widget _buildMainFields(ThemeData theme) {
+    return Column(
+      children: [
+        TextFormField(
+          decoration: InputDecoration(
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(8),
+              borderSide: BorderSide(
+                width: 0.1,
+                color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
+              ),
+            ),
+            labelText: "Label",
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+            filled: true,
+          ),
+          validator: (value) =>
+              value == null || value.isEmpty ? "Enter label" : null,
+          onSaved: (val) => _label = val ?? '',
+        ),
+
+        const SizedBox(height: 16),
+
+        Row(
+          children: [
+            Expanded(
+              child: TextFormField(
+                decoration: InputDecoration(
+                  labelText: "Amount",
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                    borderSide: BorderSide(
+                      width: 0.1,
+                      color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
+                    ),
+                  ),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  filled: true,
+                ),
+                keyboardType: TextInputType.number,
                 validator: (value) {
                   if (value == null || value.isEmpty) {
-                    return "Please enter an Lable";
-                  }
-
-                  return null;
-                },
-                onSaved: (newValue) {
-                  lable = newValue ?? '';
-                },
-              ),
-              TextFormField(
-                decoration: const InputDecoration(labelText: "Description"),
-                keyboardType: TextInputType.text,
-                onSaved: (newValue) {
-                  description = newValue ?? '';
-                },
-              ),
-
-              TextFormField(
-                decoration: const InputDecoration(labelText: "Amount"),
-                keyboardType: TextInputType.number,
-                onSaved: (newValue) {
-                  amount = double.tryParse(newValue ?? '0') ?? 0.0;
-                },
-                validator: (value) {
-                  if (value == null ||
-                      value.isEmpty ||
-                      double.tryParse(value) == 0.0) {
-                    return "Please enter a valid amount";
+                    return "Enter amount";
                   }
                   if (double.tryParse(value) == null) {
-                    return "Please enter a valid number";
+                    return "Invalid number";
                   }
                   return null;
                 },
+                onSaved: (val) => _amount = double.tryParse(val ?? '0') ?? 0.0,
               ),
+            ),
 
-              DropdownButtonFormField<PersonalExpenseTypeEntry>(
-                decoration: const InputDecoration(
-                  labelText: 'Expense Type',
-                  border: OutlineInputBorder(),
+            const SizedBox(width: 12),
+
+            Expanded(
+              child: DropdownButtonFormField<PersonalExpenseTypeEntry>(
+                decoration: InputDecoration(
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                    borderSide: BorderSide(
+                      width: 0.1,
+                      color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
+                    ),
+                  ),
+                  labelText: 'Type',
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
                 ),
-
-                initialValue: PersonalExpenseTypeEntry.food,
-
+                initialValue: _type,
                 items: PersonalExpenseTypeEntry.values.map((e) {
                   return DropdownMenuItem(
                     value: e,
                     child: Row(
                       children: [
-                        Icon(e.icon),
-                        const SizedBox(width: 10),
+                        Icon(e.icon, size: 18),
+                        const SizedBox(width: 6),
                         Text(e.label),
                       ],
                     ),
                   );
                 }).toList(),
-                onChanged: (newValue) {
-                  if (newValue != null) {
-                    personalExpenseType = newValue;
-                  }
-                },
-                onSaved: (newVale) {
-                  if (newVale != null) {
-                    personalExpenseType = newVale;
-                  }
+                onChanged: (val) {
+                  if (val != null) setState(() => _type = val);
                 },
               ),
-              TextButton.icon(
-                label: const Text("Add Expense"),
-                icon: Icon(Icons.check),
-                onPressed: () {
-                  if (addExpenseFormKey.currentState!.validate() &&
-                      user != null) {
-                    addExpenseFormKey.currentState!.save();
+            ),
+          ],
+        ),
+      ],
+    );
+  }
 
-                    newExpense = ExpenseModel(
-                      amount: amount,
-                      created_at: DateTime.now(),
-                      created_by: user.id,
-                      description: description,
-                      expense_name: lable,
-                      expense_type: ExpenseType.personal,
-                      paid_by: user.id,
-                      personal_expense_type: personalExpenseType
-                          .toPersonalExpenseType(),
-                      updated_at: DateTime.now(),
-                      splits: [],
-                    );
-                    print("New Expense: ${newExpense.toString()}");
-                    Future.delayed(const Duration(seconds: 3), () {
-                      Navigator.pop(context, newExpense);
-                    });
-                  }
-                },
-              ),
-            ],
+  /// ---------------- DESCRIPTION ----------------
+
+  Widget _buildDescriptionField() {
+    return TextFormField(
+      decoration: InputDecoration(
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(8),
+          borderSide: BorderSide(
+            width: 0.1,
+            color: Theme.of(
+              context,
+            ).colorScheme.onSurface.withValues(alpha: 0.5),
           ),
         ),
+        labelText: "Description",
+        alignLabelWithHint: true,
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
       ),
+      maxLines: 5,
+      onSaved: (val) => _description = val ?? '',
     );
   }
 }
